@@ -1113,7 +1113,7 @@ public class GLTFUnarchiver {
         var weightPaths = [String]()
         for i in 0..<glMesh.primitives.count {
             let primitive = glMesh.primitives[i]
-            let primitiveNode = SCNNode()
+            
             //var sources = [SCNGeometrySource]()
             //var vertexSource: SCNGeometrySource?
             //var normalSource: SCNGeometrySource?
@@ -1159,7 +1159,7 @@ public class GLTFUnarchiver {
             }
             
             let geometry = SCNGeometry(sources: sources, elements: elements)
-            primitiveNode.geometry = geometry
+            node.geometry = geometry
             
             if let materialIndex = primitive.material {
                 let material = try self.loadMaterial(index: materialIndex)
@@ -1189,10 +1189,9 @@ public class GLTFUnarchiver {
                     
                 }
                 morpher.calculationMode = .additive
-                primitiveNode.morpher = morpher
+                node.morpher = morpher
             }
             
-            node.addChildNode(primitiveNode)
         }
         
         // TODO: set default weights
@@ -1611,7 +1610,7 @@ public class GLTFUnarchiver {
             throw GLTFUnarchiveError.DataInconsistent("loadNode: nodes is not defined")
         }
         let glNode = nodes[index]
-        let scnNode = SCNNode()
+        var scnNode = SCNNode()
         self.nodes[index] = scnNode
         
         if let name = glNode.name {
@@ -1621,12 +1620,11 @@ public class GLTFUnarchiver {
             scnNode.camera = try self.loadCamera(index: camera)
         }
         if let mesh = glNode.mesh {
-            let meshNode = try self.loadMesh(index: mesh)
-            scnNode.addChildNode(meshNode)
+            scnNode = try self.loadMesh(index: mesh)
             
             var weightPaths = [String]()
-            for i in 0..<meshNode.childNodes.count {
-                let primitive = meshNode.childNodes[i]
+            for i in 0..<scnNode.childNodes.count {
+                let primitive = scnNode.childNodes[i]
                 if let morpher = primitive.morpher {
                     for j in 0..<morpher.targets.count {
                         let path = "childNodes[0].childNodes[\(i)].morpher.weights[\(j)]"
@@ -1637,7 +1635,7 @@ public class GLTFUnarchiver {
             scnNode.setValue(weightPaths, forUndefinedKey: "weightPaths")
             
             if let skin = glNode.skin {
-                _ = try self.loadSkin(index: skin, meshNode: meshNode)
+                _ = try self.loadSkin(index: skin, meshNode: scnNode)
                 //scnNode.skinner = skinner
             }
         }
